@@ -27,3 +27,18 @@ pub fn sys_yield() -> isize {
     suspend_current_and_run_next();
     0
 }
+
+pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
+    let us = get_time_us();
+    unsafe {
+        *ts = TimeVal {
+            sec: us / 1_000_000,
+            usec: us / 1_000_000,
+        };
+    }
+    0
+}
+
+pub fn sys_task_info(ti: *mut TaskInfo) -> isize {
+    -1
+}
