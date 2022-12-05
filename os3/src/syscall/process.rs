@@ -1,6 +1,10 @@
+use core::borrow::BorrowMut;
+
 use crate::config::{MAX_APP_NUM, MAX_SYSCALL_NUM};
-use crate::task::{exit_current_and_run_next, suspend_current_and_run_next, TaskStatus};
-use crate::timer::get_time_us;
+use crate::task::{
+    exit_current_and_run_next, suspend_current_and_run_next, TaskContext, TaskStatus, TASK_MANAGER,
+};
+use crate::timer::{get_time, get_time_us};
 
 #[repr(C)] // 和C语言规则保持一致，包括数据顺序、大小和对齐方式
 #[derive(Debug)]
@@ -9,9 +13,10 @@ pub struct TimeVal {
     pub usec: usize,
 }
 
+#[derive(Debug)]
 pub struct TaskInfo {
     status: TaskStatus,
-    syscall_times: [u32; MAX_SYSCALL_NUM],
+    syscall_times: [u32; MAX_SYSCALL_NUM], // 系统调用时间
     time: usize,
 }
 
@@ -40,5 +45,11 @@ pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
 }
 
 pub fn sys_task_info(ti: *mut TaskInfo) -> isize {
-    -1
+    let inner = TASK_MANAGER.inner.exclusive_access();
+    let current_index = inner.current_task;
+    unsafe {
+        (*ti).syscall_times = inner.tasks[current_index].task_syscall_info.clone();
+        drop(inner);
+        return 1;
+    }
 }

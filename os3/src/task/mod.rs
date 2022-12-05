@@ -6,6 +6,7 @@ mod task;
 use crate::config::{MAX_APP_NUM, MAX_SYSCALL_NUM};
 use crate::loader::{get_num_app, init_app_cx};
 use crate::sync::UPSafeCell;
+use core::cell::RefMut;
 use lazy_static::*;
 pub use switch::__switch;
 pub use task::{TaskControlBlock, TaskStatus};
@@ -17,15 +18,15 @@ pub struct TaskManager {
     // 任务总数
     num_app: usize,
     // 使用内部值获得可变变量
-    inner: UPSafeCell<TaskManagerInner>,
+    pub inner: UPSafeCell<TaskManagerInner>,
 }
 
 // 任务控制器内部数据
 pub struct TaskManagerInner {
     // 任务列表
-    tasks: [TaskControlBlock; MAX_APP_NUM],
+    pub tasks: [TaskControlBlock; MAX_APP_NUM],
     // 当前任务
-    current_task: usize,
+    pub current_task: usize,
 }
 
 // 初始化任务管理器
@@ -35,6 +36,7 @@ lazy_static! {
         let mut tasks = [TaskControlBlock {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
+            task_syscall_info: [0; MAX_SYSCALL_NUM]
         }; MAX_APP_NUM]; // 初始化任务列表，每个元素是一个任务控制块
         for (i, t) in tasks.iter_mut()// 获取可变切片迭代器
         .enumerate()// 创建一个pair(i, val)迭代器
@@ -145,7 +147,7 @@ fn mark_current_suspended() {
 
 // Running => Exited
 fn mark_current_exited() {
-    TASK_MANAGER.mark_current_suspended();
+    TASK_MANAGER.mark_current_exited();
 }
 
 // 暂停当前任务然后执行任务列表中的下一个任务
