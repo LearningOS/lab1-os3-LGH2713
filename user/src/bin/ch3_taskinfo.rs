@@ -10,6 +10,8 @@ use user_lib::{
 
 #[no_mangle]
 pub fn main() -> usize {
+    println!("break point");
+
     let t1 = get_time() as usize;
     let info = TaskInfo::new();
     get_time();

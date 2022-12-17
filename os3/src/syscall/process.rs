@@ -48,8 +48,7 @@ pub fn sys_task_info(ti: *mut TaskInfo) -> isize {
     let inner = TASK_MANAGER.inner.exclusive_access();
     let current_index = inner.current_task;
     unsafe {
-        (*ti).syscall_times = inner.tasks[current_index].task_syscall_info.clone();
-        drop(inner);
-        return 1;
+        (*ti).syscall_times = inner.tasks[current_index].task_syscall_info;
     }
+    return 1;
 }
