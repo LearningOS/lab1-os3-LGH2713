@@ -15,6 +15,7 @@ use crate::task::TASK_MANAGER;
 
 pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
     // test
+    println!("break point");
     let mut inner = TASK_MANAGER.inner.exclusive_access();
     let current_index = inner.current_task;
     inner.tasks[current_index].task_syscall_info[syscall_id] += 1;
