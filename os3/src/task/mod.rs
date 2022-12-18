@@ -7,6 +7,9 @@ use crate::config::MAX_APP_NUM;
 use crate::loader::{get_num_app, init_app_cx};
 use crate::sync::UPSafeCell;
 use crate::syscall::process::TaskInfo;
+use crate::timer::get_time;
+use alloc::vec;
+use alloc::vec::Vec;
 use lazy_static::*;
 pub use switch::__switch;
 pub use task::{TaskControlBlock, TaskStatus};
@@ -24,7 +27,7 @@ pub struct TaskManager {
 // 任务控制器内部数据
 pub struct TaskManagerInner {
     // 任务列表
-    pub tasks: [TaskControlBlock; MAX_APP_NUM],
+    pub tasks: Vec<TaskControlBlock>,
     // 当前任务
     pub current_task: usize,
 }
@@ -33,7 +36,7 @@ pub struct TaskManagerInner {
 lazy_static! {
     pub static ref TASK_MANAGER: TaskManager = {
         let num_app = get_num_app(); // 获取应用总数
-        let mut tasks = [TaskControlBlock {
+        let mut  tasks  =  vec![TaskControlBlock {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
             task_info: TaskInfo::new()
@@ -68,6 +71,7 @@ impl TaskManager {
         // 设置第一个任务为运行状态
         task0.task_status = TaskStatus::Running;
         task0.task_info.status = TaskStatus::Running;
+        task0.task_info.time = get_time();
         //
         let next_task_cx_ptr = &task0.task_cx as *const TaskContext;
         // 清理变量inner
@@ -116,7 +120,8 @@ impl TaskManager {
             let current = inner.current_task;
             // 将下一个任务的状态置为Running
             inner.tasks[next].task_status = TaskStatus::Running;
-            inner.tasks[current].task_info.status = TaskStatus::Running;
+            inner.tasks[next].task_info.status = TaskStatus::Running;
+            inner.tasks[next].task_info.time = get_time();
             // 将当前任务置为下一个任务
             inner.current_task = next;
             // 获取当前任务上下文指针

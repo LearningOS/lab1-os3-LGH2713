@@ -14,12 +14,14 @@ use process::*;
 use crate::task::TASK_MANAGER;
 
 pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
-    // test
-    // println!("break point");
-    // let mut inner = TASK_MANAGER.inner.exclusive_access();
-    // let current_index = inner.current_task;
-    // inner.tasks[current_index].task_info.syscall_times[syscall_id] += 1;
-    // drop(inner);
+    let mut inner = TASK_MANAGER.inner.exclusive_access();
+    let current_index = inner.current_task;
+    inner.tasks[current_index].task_info.syscall_times[syscall_id] += 1;
+    println!(
+        "[{}] syscall time = {}",
+        syscall_id, inner.tasks[current_index].task_info.syscall_times[syscall_id]
+    );
+    drop(inner);
 
     match syscall_id {
         SYSCALL_WRITE => sys_write(args[0], args[1] as *const u8, args[2]),
