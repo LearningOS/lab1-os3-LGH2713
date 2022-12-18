@@ -1,15 +1,16 @@
+//! Implementation of [`TrapContext`]
+
 use riscv::register::sstatus::{self, Sstatus, SPP};
 
 #[repr(C)]
-// 中断上下文
+/// trap context structure containing sstatus, sepc and registers
 pub struct TrapContext {
-    pub x: [usize; 32],   // 32个x寄存器
-    pub sstatus: Sstatus, // 陷入状态
-    pub sepc: usize,      // trap发生前执行的最后一条指令的地址
+    pub x: [usize; 32],
+    pub sstatus: Sstatus,
+    pub sepc: usize,
 }
 
 impl TrapContext {
-    // 设置栈指针（x2 为栈指针寄存器）
     pub fn set_sp(&mut self, sp: usize) {
         self.x[2] = sp;
     }

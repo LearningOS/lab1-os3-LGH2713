@@ -1,3 +1,17 @@
+//! Trap handling functionality
+//!
+//! For rCore, we have a single trap entry point, namely `__alltraps`. At
+//! initialization in [`init()`], we set the `stvec` CSR to point to it.
+//!
+//! All traps go through `__alltraps`, which is defined in `trap.S`. The
+//! assembly language code does just enough work restore the kernel space
+//! context, ensuring that Rust code safely runs, and transfers control to
+//! [`trap_handler()`].
+//!
+//! It then calls different functionality based on what exactly the exception
+//! was. For example, timer interrupts trigger task preemption, and syscalls go
+//! to [`syscall()`].
+
 mod context;
 
 use crate::syscall::syscall;
@@ -9,50 +23,43 @@ use riscv::register::{
     sie, stval, stvec,
 };
 
-// 加载汇编代码
 core::arch::global_asm!(include_str!("trap.S"));
 
+/// initialize CSR `stvec` as the entry of `__alltraps`
 pub fn init() {
     extern "C" {
-        // 保存陷入时的寄存器状态
         fn __alltraps();
     }
     unsafe {
-        // 写入返回地址
         stvec::write(__alltraps as usize, TrapMode::Direct);
     }
 }
 
-// 设置时间中断使能
+/// timer interrupt enabled
 pub fn enable_timer_interrupt() {
     unsafe {
-        // 设置监督模式下的时间中断使能
         sie::set_stimer();
     }
 }
 
-#[no_mangle] // 使用其他语言的FFI时需要添加这个宏
-             // 陷入操作函数
+#[no_mangle]
+/// handle an interrupt, exception, or system call from user space
 pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
-    let scause = scause::read(); // 获取trap发生前处于哪个特权级等信息
-    let stval = stval::read(); // 获取trap的附加信息
+    let scause = scause::read(); // get trap cause
+    let stval = stval::read(); // get extra value
     match scause.cause() {
-        // 异常原因：用户系统调用
         Trap::Exception(Exception::UserEnvCall) => {
             cx.sepc += 4;
             cx.x[10] = syscall(cx.x[17], [cx.x[10], cx.x[11], cx.x[12]]) as usize;
         }
-        // 异常原因：储存错误
-        Trap::Exception(Exception::StoreFault) => {
+        Trap::Exception(Exception::StoreFault) | Trap::Exception(Exception::StorePageFault) => {
             error!("[kernel] PageFault in application, bad addr = {:#x}, bad instruction = {:#x}, core dumped.", stval, cx.sepc);
             exit_current_and_run_next();
         }
-        // 异常原因：非法指令
         Trap::Exception(Exception::IllegalInstruction) => {
             error!("[kernel] IllegalInstruction in application, core dumped.");
             exit_current_and_run_next();
         }
-        // 异常原因：监督模式时钟中断
         Trap::Interrupt(Interrupt::SupervisorTimer) => {
             set_next_trigger();
             suspend_current_and_run_next();

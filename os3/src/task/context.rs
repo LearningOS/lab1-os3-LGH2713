@@ -1,14 +1,15 @@
+//! Implementation of [`TaskContext`]
+
 #[derive(Copy, Clone)]
 #[repr(C)]
-
+/// task context structure containing some registers
 pub struct TaskContext {
-    ra: usize,      // 函数返回地址
-    sp: usize,      // 内核栈指针
-    s: [usize; 12], // 被调用者寄存器s0~s11
+    ra: usize,
+    sp: usize,
+    s: [usize; 12],
 }
 
 impl TaskContext {
-    // 用0初始化任务上下文
     pub fn zero_init() -> Self {
         Self {
             ra: 0,

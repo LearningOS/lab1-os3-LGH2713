@@ -1,5 +1,3 @@
-use core::borrow::BorrowMut;
-
 use crate::config::{MAX_APP_NUM, MAX_SYSCALL_NUM};
 use crate::task::{
     exit_current_and_run_next, suspend_current_and_run_next, TaskContext, TaskStatus, TASK_MANAGER,
@@ -13,11 +11,21 @@ pub struct TimeVal {
     pub usec: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct TaskInfo {
-    status: TaskStatus,
-    syscall_times: [u32; MAX_SYSCALL_NUM], // 系统调用时间
-    time: usize,
+    pub status: TaskStatus,
+    pub syscall_times: [u32; MAX_SYSCALL_NUM], // 系统调用时间
+    pub time: usize,
+}
+
+impl TaskInfo {
+    pub fn new() -> Self {
+        Self {
+            status: TaskStatus::UnInit,
+            syscall_times: [0; MAX_SYSCALL_NUM],
+            time: 0,
+        }
+    }
 }
 
 // 系统调用，退出程序
@@ -48,7 +56,7 @@ pub fn sys_task_info(ti: *mut TaskInfo) -> isize {
     let inner = TASK_MANAGER.inner.exclusive_access();
     let current_index = inner.current_task;
     unsafe {
-        (*ti).syscall_times = inner.tasks[current_index].task_syscall_info;
+        (*ti) = inner.tasks[current_index].task_info;
     }
     return 1;
 }

@@ -58,3 +58,4 @@ dbg: build
 	qemu-system-riscv64 -machine virt -nographic -bios $(BOOTLOADER) -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA) -s -S
 
 .PHONY: build env kernel clean run-inner
+

@@ -3,10 +3,10 @@ mod switch;
 #[allow(clippy::module_inception)]
 mod task;
 
-use crate::config::{MAX_APP_NUM, MAX_SYSCALL_NUM};
+use crate::config::MAX_APP_NUM;
 use crate::loader::{get_num_app, init_app_cx};
 use crate::sync::UPSafeCell;
-use core::cell::RefMut;
+use crate::syscall::process::TaskInfo;
 use lazy_static::*;
 pub use switch::__switch;
 pub use task::{TaskControlBlock, TaskStatus};
@@ -36,13 +36,14 @@ lazy_static! {
         let mut tasks = [TaskControlBlock {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
-            task_syscall_info: [0; MAX_SYSCALL_NUM]
+            task_info: TaskInfo::new()
         }; MAX_APP_NUM]; // 初始化任务列表，每个元素是一个任务控制块
         for (i, t) in tasks.iter_mut()// 获取可变切片迭代器
         .enumerate()// 创建一个pair(i, val)迭代器
         .take(num_app) {
             t.task_cx = TaskContext::goto_restore(init_app_cx(i)); // 初始化任务上下文
             t.task_status = TaskStatus::Ready; // 初始化任务状态
+            t.task_info.status =  TaskStatus::Ready;
         }
         // 返回一个任务管理器
         TaskManager {
@@ -66,6 +67,7 @@ impl TaskManager {
         let task0 = &mut inner.tasks[0];
         // 设置第一个任务为运行状态
         task0.task_status = TaskStatus::Running;
+        task0.task_info.status = TaskStatus::Running;
         //
         let next_task_cx_ptr = &task0.task_cx as *const TaskContext;
         // 清理变量inner
@@ -84,6 +86,7 @@ impl TaskManager {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task; // 获取当前任务索引
         inner.tasks[current].task_status = TaskStatus::Ready;
+        inner.tasks[current].task_info.status = TaskStatus::Ready;
     }
 
     // 改变当前任务状态 Running => Exited
@@ -91,6 +94,7 @@ impl TaskManager {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
         inner.tasks[current].task_status = TaskStatus::Exited;
+        inner.tasks[current].task_info.status = TaskStatus::Exited;
     }
 
     // 找到下一个任务然后返回任务id
@@ -112,6 +116,7 @@ impl TaskManager {
             let current = inner.current_task;
             // 将下一个任务的状态置为Running
             inner.tasks[next].task_status = TaskStatus::Running;
+            inner.tasks[current].task_info.status = TaskStatus::Running;
             // 将当前任务置为下一个任务
             inner.current_task = next;
             // 获取当前任务上下文指针

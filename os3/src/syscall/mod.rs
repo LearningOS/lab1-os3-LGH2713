@@ -6,7 +6,7 @@ const SYSCALL_GET_TIME: usize = 169; // 获取时间
 const SYSCALL_TASK_INFO: usize = 410; // 获取任务信息
 
 mod fs;
-mod process;
+pub mod process;
 
 use fs::*;
 use process::*;
@@ -15,11 +15,11 @@ use crate::task::TASK_MANAGER;
 
 pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
     // test
-    println!("break point");
-    let mut inner = TASK_MANAGER.inner.exclusive_access();
-    let current_index = inner.current_task;
-    inner.tasks[current_index].task_syscall_info[syscall_id] += 1;
-    drop(inner);
+    // println!("break point");
+    // let mut inner = TASK_MANAGER.inner.exclusive_access();
+    // let current_index = inner.current_task;
+    // inner.tasks[current_index].task_info.syscall_times[syscall_id] += 1;
+    // drop(inner);
 
     match syscall_id {
         SYSCALL_WRITE => sys_write(args[0], args[1] as *const u8, args[2]),
