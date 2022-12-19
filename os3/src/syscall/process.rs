@@ -1,9 +1,10 @@
+use crate::config::MAX_SYSCALL_NUM;
+use crate::syscall::*;
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::config::{MAX_APP_NUM, MAX_SYSCALL_NUM};
 use crate::task::{
-    exit_current_and_run_next, suspend_current_and_run_next, TaskContext, TaskStatus, TASK_MANAGER,
+    exit_current_and_run_next, suspend_current_and_run_next, TaskStatus, TASK_MANAGER,
 };
 use crate::timer::{get_time, get_time_us};
 
@@ -23,7 +24,7 @@ pub struct TaskInfo {
 
 impl TaskInfo {
     pub fn new() -> Self {
-        Self {
+        TaskInfo {
             status: TaskStatus::UnInit,
             syscall_times: vec![0; MAX_SYSCALL_NUM],
             time: 0,
@@ -59,7 +60,12 @@ pub fn sys_task_info(ti: *mut TaskInfo) -> isize {
     let inner = TASK_MANAGER.inner.exclusive_access();
     let current_index = inner.current_task;
     unsafe {
-        (*ti) = inner.tasks[current_index].task_info.clone();
+        *ti = TaskInfo {
+            syscall_times: inner.tasks[current_index].syscall_times.clone(),
+            time: get_time() - inner.tasks[current_index].begin_time,
+            status: inner.tasks[current_index].task_status,
+        };
     }
-    return 1;
+    drop(inner);
+    0
 }

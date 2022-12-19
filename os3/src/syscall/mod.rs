@@ -16,11 +16,8 @@ use crate::task::TASK_MANAGER;
 pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
     let mut inner = TASK_MANAGER.inner.exclusive_access();
     let current_index = inner.current_task;
-    inner.tasks[current_index].task_info.syscall_times[syscall_id] += 1;
-    println!(
-        "[{}] syscall time = {}",
-        syscall_id, inner.tasks[current_index].task_info.syscall_times[syscall_id]
-    );
+    inner.tasks[current_index].syscall_times[syscall_id] += 1;
+
     drop(inner);
 
     match syscall_id {
