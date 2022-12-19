@@ -73,7 +73,7 @@ impl TaskManager {
     }
     fn get_current_run_time(&self) -> usize {
         let inner = TASK_MANAGER.inner.exclusive_access();
-        (get_time_ms() - inner.tasks[inner.current_task].start_time.unwrap()) / (CLOCK_FREQ)
+        get_time_ms() - inner.tasks[inner.current_task].start_time.unwrap()
     }
     // 运行第一个任务
     fn run_first_task(&self) -> ! {
