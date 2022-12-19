@@ -1,10 +1,7 @@
 use crate::config::MAX_SYSCALL_NUM;
-use crate::syscall::*;
-use alloc::vec;
-use alloc::vec::Vec;
-
 use crate::task::{
-    exit_current_and_run_next, suspend_current_and_run_next, TaskStatus, TASK_MANAGER,
+    exit_current_and_run_next, get_current_run_time, get_current_task_status, get_syscall_times,
+    suspend_current_and_run_next, TaskStatus,
 };
 use crate::timer::{get_time, get_time_us};
 
@@ -18,18 +15,8 @@ pub struct TimeVal {
 #[derive(Debug, Clone)]
 pub struct TaskInfo {
     pub status: TaskStatus,
-    pub syscall_times: Vec<u32>, // 系统调用次数
+    pub syscall_times: [u32; MAX_SYSCALL_NUM], // 系统调用次数
     pub time: usize,
-}
-
-impl TaskInfo {
-    pub fn new() -> Self {
-        TaskInfo {
-            status: TaskStatus::UnInit,
-            syscall_times: vec![0; MAX_SYSCALL_NUM],
-            time: 0,
-        }
-    }
 }
 
 // 系统调用，退出程序
@@ -57,15 +44,12 @@ pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
 }
 
 pub fn sys_task_info(ti: *mut TaskInfo) -> isize {
-    let inner = TASK_MANAGER.inner.exclusive_access();
-    let current_index = inner.current_task;
     unsafe {
         *ti = TaskInfo {
-            syscall_times: inner.tasks[current_index].syscall_times.clone(),
-            time: get_time() - inner.tasks[current_index].begin_time,
-            status: inner.tasks[current_index].task_status,
+            syscall_times: get_syscall_times(),
+            time: get_time() - get_current_run_time(),
+            status: get_current_task_status(),
         };
     }
-    drop(inner);
     0
 }

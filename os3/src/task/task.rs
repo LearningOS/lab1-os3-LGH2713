@@ -1,17 +1,14 @@
 use super::TaskContext;
 
 use crate::config::MAX_SYSCALL_NUM;
-use alloc::vec;
-use alloc::vec::Vec;
+use alloc::boxed::Box;
 
 #[derive(Clone)]
 pub struct TaskControlBlock {
-    pub task_status: TaskStatus, // 任务状态
-    pub task_cx: TaskContext,    // 任务上下文
-    pub syscall_times: Vec<u32>, // 记录系统调用次
-    pub first_run: bool,
-    pub begin_time: usize,
-    pub end_time: usize,
+    pub task_status: TaskStatus,                    // 任务状态
+    pub task_cx: TaskContext,                       // 任务上下文
+    pub syscall_times: Box<[u32; MAX_SYSCALL_NUM]>, // 记录系统调用次
+    pub start_time: Option<usize>,
 }
 
 impl TaskControlBlock {
@@ -19,10 +16,8 @@ impl TaskControlBlock {
         Self {
             task_status: TaskStatus::UnInit,
             task_cx: TaskContext::zero_init(),
-            syscall_times: vec![0; MAX_SYSCALL_NUM],
-            first_run: true,
-            begin_time: 0,
-            end_time: 0,
+            syscall_times: Box::new([0; MAX_SYSCALL_NUM]),
+            start_time: None,
         }
     }
 }
